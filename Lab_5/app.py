@@ -56,17 +56,19 @@ def shade(color: Tuple[int, int, int], n: Vec3, light: Vec3 = (0.5, 0.7, 1.0)) -
 
 def build_letter_r(depth: float = 1.0) -> Tuple[List[Vec3], List[Face]]:
     """Return vertices and quad faces for an extruded 'R' (Р)."""
+    # Контур буквы: столб + чаша буквы Р
     contour = [
-        (0.0, 0.0),
-        (0.0, 6.0),
-        (2.0, 6.0),
-        (2.0, 3.8),
-        (3.8, 3.8),
-        (5.0, 3.2),
-        (5.0, 1.0),
-        (3.8, 0.0),
+        (0.0, 0.0),   # низ слева
+        (0.0, 8.0),   # верх слева
+        (3.8, 8.0),   # верх чаши
+        (5.2, 6.8),   # правый верх чаши
+        (5.2, 4.8),   # правый низ чаши
+        (3.8, 3.6),   # стык к ножке чаши
+        (1.8, 3.6),   # переход к столбу
+        (1.8, 0.0),   # низ столба
     ]
-    inner = [(2.8, 1.2), (2.8, 2.6), (3.6, 2.6), (3.6, 1.2)]
+    # Внутренняя выемка чаши
+    inner = [(2.2, 6.6), (2.2, 5.0), (3.8, 5.0), (4.0, 6.6)]
 
     verts: List[Vec3] = []
     for z in (0.0, depth):
@@ -98,12 +100,22 @@ def build_letter_r(depth: float = 1.0) -> Tuple[List[Vec3], List[Face]]:
     faces.append(tuple(back_start + i for i in range(n_contour)))
     faces.append(tuple(back_start + n_contour + i for i in range(n_inner)))
 
-    # add diagonal leg for 'R' (front/back and sides)
-    diag_front = len(verts)
-    verts.extend([(2.0, 3.8, 0.0), (4.8, 0.0, 0.0)])
-    diag_back = len(verts)
-    verts.extend([(2.0, 3.8, depth), (4.8, 0.0, depth)])
-    faces.append((diag_front, diag_front + 1, diag_back + 1, diag_back))
+    # Добавляем диагональную ножку как отдельную призму
+    leg_front_start = len(verts)
+    leg_front = [(1.8, 3.6, 0.0), (3.2, 3.6, 0.0), (4.8, 0.0, 0.0), (3.0, 0.0, 0.0)]
+    leg_back_start = leg_front_start + len(leg_front)
+    leg_back = [(x, y, depth) for (x, y, _) in leg_front]
+    verts.extend(leg_front + leg_back)
+    # стороны ножки
+    faces.extend(
+        [
+            (leg_front_start + i, leg_front_start + (i + 1) % 4, leg_back_start + (i + 1) % 4, leg_back_start + i)
+            for i in range(4)
+        ]
+    )
+    # фронт и тыл ножки
+    faces.append(tuple(range(leg_front_start, leg_front_start + 4)))
+    faces.append(tuple(range(leg_back_start, leg_back_start + 4)))
 
     return verts, faces
 
