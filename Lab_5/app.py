@@ -14,11 +14,8 @@ def rotate(v: Vec3, rx: float, ry: float, rz: float) -> Vec3:
     cy, sy = math.cos(ry), math.sin(ry)
     cz, sz = math.cos(rz), math.sin(rz)
 
-    # X
     y, z = y * cx - z * sx, y * sx + z * cx
-    # Y
     x, z = x * cy + z * sy, -x * sy + z * cy
-    # Z
     x, y = x * cz - y * sz, x * sz + y * cz
     return x, y, z
 
@@ -56,19 +53,19 @@ def shade(color: Tuple[int, int, int], n: Vec3, light: Vec3 = (0.5, 0.7, 1.0)) -
 
 def build_letter_r(depth: float = 1.0) -> Tuple[List[Vec3], List[Face]]:
     """Return vertices and quad faces for an extruded 'R' (Р)."""
-    # Упрощенный контур без самопересечений (по часовой стрелке)
+    # Simple contour without self-intersections (clockwise)
     contour = [
-        (0.0, 0.0),   # низ слева
-        (0.0, 8.0),   # верх слева
-        (5.0, 8.0),   # верх чаши
-        (5.4, 7.0),   # правый верх чаши
-        (5.4, 5.0),   # правый низ чаши
-        (3.8, 5.0),   # переход к столбу
-        (5.4, 0.0),   # низ диагонали
-        (3.0, 0.0),   # низ столба/диагонали
+        (0.0, 0.0),
+        (0.0, 8.0),
+        (5.2, 8.0),
+        (5.6, 7.2),
+        (5.6, 5.2),
+        (2.4, 5.2),
+        (5.6, 3.0),
+        (3.4, 0.0),
     ]
-    # Внутренняя выемка чаши (прямоугольник)
-    inner = [(1.2, 6.8), (1.2, 5.4), (3.4, 5.4), (3.4, 6.8)]
+    # Rectangular cutout
+    inner = [(1.2, 6.9), (1.2, 5.6), (3.6, 5.6), (3.6, 6.9)]
 
     verts: List[Vec3] = []
     for z in (0.0, depth):
@@ -81,24 +78,26 @@ def build_letter_r(depth: float = 1.0) -> Tuple[List[Vec3], List[Face]]:
     n_contour = len(contour)
     n_inner = len(inner)
 
-    # side faces contour
+    # Side faces for outer contour
     for i in range(n_contour):
         a = i
         b = (i + 1) % n_contour
         faces.append((a, b, b + n_contour, a + n_contour))
-    # side faces inner hole (reverse to maintain winding)
-    offset_inner = 2 * n_contour
+    # Side faces for inner hole (reverse winding for correct normals)
     for i in range(n_inner):
-        a = n_contour + i
-        b = n_contour + (i + 1) % n_inner
-        faces.append((b + n_contour, a + n_contour, a, b))
-    # front
+        a_front = n_contour + i
+        b_front = n_contour + (i + 1) % n_inner
+        a_back = n_contour + n_inner + n_contour + i
+        b_back = n_contour + n_inner + n_contour + (i + 1) % n_inner
+        faces.append((b_back, a_back, a_front, b_front))
+    # Front faces
     faces.append(tuple(range(n_contour)))
     faces.append(tuple(range(n_contour, n_contour + n_inner)))
-    # back
-    back_start = n_contour
+    # Back faces (offset after front and inner rings)
+    back_start = n_contour + n_inner
+    back_inner_start = back_start + n_contour
     faces.append(tuple(back_start + i for i in range(n_contour)))
-    faces.append(tuple(back_start + n_contour + i for i in range(n_inner)))
+    faces.append(tuple(back_inner_start + i for i in range(n_inner)))
 
     return verts, faces
 
